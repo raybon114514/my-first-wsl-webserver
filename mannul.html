@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Linux Web Server 架設全攻略 (Ubuntu 22.04 LTS)</title>
+    <style>
+        :root {
+            --primary-color: #007bff;
+            --bg-color: #f8f9fa;
+            --text-color: #333;
+            --code-bg: #2d2d2d;
+            --code-text: #f8f8f2;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            line-height: 1.6;
+            color: var(--text-color);
+            background-color: var(--bg-color);
+            margin: 0;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            background: #fff;
+            padding: 40px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        h1 {
+            text-align: center;
+            color: #2c3e50;
+            border-bottom: 2px solid #eee;
+            padding-bottom: 20px;
+        }
+
+        h2 {
+            margin-top: 40px;
+            color: #2c3e50;
+            border-left: 5px solid var(--primary-color);
+            padding-left: 15px;
+        }
+
+        h3 {
+            color: #495057;
+            margin-top: 25px;
+        }
+
+        p {
+            margin-bottom: 15px;
+        }
+
+        .note {
+            background-color: #e7f5ff;
+            border-left: 4px solid #007bff;
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 4px;
+        }
+
+        .warning {
+            background-color: #fff3cd;
+            border-left: 4px solid #ffc107;
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 4px;
+        }
+
+        pre {
+            background-color: var(--code-bg);
+            color: var(--code-text);
+            padding: 15px;
+            border-radius: 5px;
+            overflow-x: auto;
+            font-family: 'Consolas', 'Monaco', monospace;
+        }
+
+        code {
+            font-family: 'Consolas', 'Monaco', monospace;
+        }
+
+        .step-badge {
+            display: inline-block;
+            background: var(--primary-color);
+            color: #fff;
+            border-radius: 50%;
+            width: 25px;
+            height: 25px;
+            text-align: center;
+            line-height: 25px;
+            margin-right: 10px;
+            font-size: 0.9em;
+        }
+
+        .platform-section {
+            border: 1px solid #ddd;
+            padding: 20px;
+            border-radius: 8px;
+            margin-top: 20px;
+        }
+
+        .vm-tag {
+            background-color: #6f42c1;
+            color: white;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 0.8em;
+            vertical-align: middle;
+        }
+
+        .wsl-tag {
+            background-color: #198754;
+            color: white;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 0.8em;
+            vertical-align: middle;
+        }
+        
+        footer {
+            text-align: center;
+            margin-top: 50px;
+            font-size: 0.9em;
+            color: #666;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>Linux Web Server 架設全攻略<br><small style="font-size: 0.6em; color: #666;">適用於 Ubuntu 22.04 LTS (VM / WSL)</small></h1>
+
+    <div class="note">
+        <strong>前言：</strong> 本指南整合了 Nginx (Web Server)、Node.js (Backend) 與 MariaDB (Database) 的完整架設流程，並包含如何設定反向代理與遠端資料庫連線。
+    </div>
+
+    <h2>第一部分：基礎環境安裝 (通用)</h2>
+    <p>無論您是使用 VM 還是 WSL，請先執行以下步驟來安裝必要軟體。</p>
+
+    <h3>1. 更新系統</h3>
+    <pre><code>sudo apt update && sudo apt upgrade -y</code></pre>
+
+    <h3>2. 安裝 Nginx (網頁伺服器)</h3>
+    <pre><code>sudo apt install nginx -y
+# 檢查狀態
+sudo systemctl status nginx</code></pre>
+
+    <h3>3. 安裝 Node.js (使用 nvm/nodesource 安裝 LTS 版本)</h3>
+    <pre><code>sudo apt install curl -y
+curl -fsSL https://deb.nodesource.com/setup_lts.x | sudo -E bash -
+sudo apt install -y nodejs
+
+# 驗證安裝
+node -v
+npm -v</code></pre>
+
+    <h3>4. 安裝 MariaDB (資料庫)</h3>
+    <pre><code>sudo apt install mariadb-server -y
+# 執行安全設定 (設定 root 密碼、移除匿名使用者等)
+sudo mysql_secure_installation</code></pre>
+
+    <hr>
+
+    <h2>第二部分：後端程式與資料庫串接</h2>
+
+    <h3>1. 建立資料庫與使用者</h3>
+    <p>登入資料庫：<code>sudo mariadb -u root -p</code>，然後執行以下 SQL：</p>
+    <pre><code>CREATE DATABASE my_game_db;
+CREATE USER 'myuser'@'localhost' IDENTIFIED BY 'mypassword';
+GRANT ALL PRIVILEGES ON my_game_db.* TO 'myuser'@'localhost';
+FLUSH PRIVILEGES;
+EXIT;</code></pre>
+
+    <h3>2. 建立 Node.js 專案</h3>
+    <div class="warning">
+        <strong>WSL 使用者注意：</strong> 請務必將專案建立在 Linux 檔案系統內 (如 <code>~/my-project</code>)，切勿建立在 Windows 的 C 槽或 D 槽，否則效能會極差。
+    </div>
+    <pre><code>mkdir ~/my-server && cd ~/my-server
+npm init -y
+npm install mysql2</code></pre>
+
+    <h3>3. 撰寫 server.js</h3>
+    <p>建立 <code>server.js</code> 並貼上以下範例程式碼：</p>
+    <pre><code>const http = require('http');
+const mysql = require('mysql2/promise');
+
+const dbConfig = {
+    host: 'localhost',
+    user: 'myuser',
+    password: 'mypassword',
+    database: 'my_game_db'
+};
+
+const server = http.createServer(async (req, res) => {
+    res.setHeader('Content-Type', 'text/plain; charset=utf-8');
+    try {
+        const connection = await mysql.createConnection(dbConfig);
+        const [rows] = await connection.execute('SELECT "Database Connected!" as msg');
+        await connection.end();
+        res.end(`Hello from Node.js! \nDB Status: ${rows[0].msg}`);
+    } catch (err) {
+        res.end('Error: ' + err.message);
+    }
+});
+
+server.listen(3000, () => console.log('Server running on port 3000'));</code></pre>
+
+    <hr>
+
+    <h2>第三部分：設定 Nginx 反向代理</h2>
+    <p>我們要讓 Nginx (Port 80) 接收流量，並轉發給 Node.js (Port 3000)。</p>
+
+    <p>編輯設定檔：<code>sudo nano /etc/nginx/sites-available/default</code></p>
+    <p>將 <code>location /</code>區塊修改如下：</p>
+    <pre><code>location / {
+    proxy_pass http://localhost:3000;
+    proxy_http_version 1.1;
+    proxy_set_header Upgrade $http_upgrade;
+    proxy_set_header Connection 'upgrade';
+    proxy_set_header Host $host;
+    proxy_cache_bypass $http_upgrade;
+}</code></pre>
+    <p>測試並重啟：</p>
+    <pre><code>sudo nginx -t
+sudo systemctl restart nginx</code></pre>
+
+    <hr>
+
+    <h2>第四部分：網路與防火牆 (請依環境選擇)</h2>
+
+    <div class="platform-section">
+        <h3><span class="vm-tag">情境 A</span> 如果您使用 VM (VirtualBox / VMware)</h3>
+        <p><strong>目標：</strong> 讓 Windows 本機透過獨立 IP 連線。</p>
+        <ol>
+            <li><strong>網路設定：</strong> 將虛擬機網路卡改為 <strong>橋接模式 (Bridged Adapter)</strong>。</li>
+            <li><strong>防火牆 (UFW)：</strong> 必須開啟，否則連線會被擋。
+                <pre><code>sudo ufw allow ssh
+sudo ufw allow 'Nginx Full'
+sudo ufw allow 3306
+sudo ufw enable</code></pre>
+            </li>
+            <li><strong>查詢 IP：</strong> 輸入 <code>ip a</code>，找到 <code>192.168.x.x</code>。</li>
+            <li><strong>連線：</strong> 在 Windows 瀏覽器輸入該 IP。</li>
+        </ol>
+    </div>
+
+    <div class="platform-section">
+        <h3><span class="wsl-tag">情境 B</span> 如果您使用 WSL (Windows Subsystem for Linux)</h3>
+        <p><strong>目標：</strong> 讓開發流程最順暢。</p>
+        <ol>
+            <li><strong>防火牆 (UFW)：</strong> 建議 <strong>關閉</strong>，因為 WSL 受 Windows 防火牆管轄，開啟 UFW 只會造成連線問題。
+                <pre><code>sudo ufw disable</code></pre>
+            </li>
+            <li><strong>連線方式：</strong> 微軟支援 Localhost Forwarding。
+                <ul>
+                    <li>直接在 Windows 瀏覽器輸入 <code>http://localhost</code> 即可。</li>
+                </ul>
+            </li>
+            <li><strong>注意事項：</strong> 每次重開機，WSL 的服務 (Nginx/MariaDB) 需手動啟動：
+                <pre><code>sudo service nginx start
+sudo service mariadb start</code></pre>
+            </li>
+        </ol>
+    </div>
+
+    <hr>
+
+    <h2>第五部分：遠端資料庫管理 (DBeaver)</h2>
+    <p>若要在 Windows 上使用圖形化工具 (如 DBeaver) 管理資料庫。</p>
+
+    <h3>1. 修改 MariaDB 設定</h3>
+    <p>編輯 <code>sudo nano /etc/mysql/mariadb.conf.d/50-server.cnf</code>，將綁定位置改為全開放：</p>
+    <pre><code>bind-address = 0.0.0.0</code></pre>
+    <p>重啟服務：<code>sudo systemctl restart mariadb</code></p>
+
+    <h3>2. 建立遠端管理員權限</h3>
+    <p>進入資料庫後執行 SQL：</p>
+    <pre><code>CREATE USER 'admin'@'%' IDENTIFIED BY 'admin123';
+GRANT ALL PRIVILEGES ON *.* TO 'admin'@'%' WITH GRANT OPTION;
+FLUSH PRIVILEGES;</code></pre>
+
+    <h3>3. DBeaver 連線設定</h3>
+    <ul>
+        <li><strong>VM 使用者：</strong> Host 填寫 VM 的 IP (192.168.x.x)。</li>
+        <li><strong>WSL 使用者：</strong> Host 填寫 <code>localhost</code> (或是 <code>127.0.0.1</code>)。</li>
+        <li><strong>Port：</strong> 3306</li>
+        <li><strong>User/Password：</strong> admin / admin123</li>
+    </ul>
+
+    <footer>
+        <p>Created by Gemini AI Setup Assistant</p>
+    </footer>
+</div>
+
+</body>
+</html>

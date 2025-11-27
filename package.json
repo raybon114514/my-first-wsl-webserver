@@ -19,7 +19,9 @@
   },
   "homepage": "https://github.com/raybon114514/my-first-wsl-webserver#readme",
   "dependencies": {
+    "cors": "^2.8.5",
     "dotenv": "^17.2.3",
+    "express": "^5.1.0",
     "mysql2": "^3.15.3"
   }
 }

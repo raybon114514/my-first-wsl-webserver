@@ -3,123 +3,127 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>My DB Control Panel</title>
+    <title>Multi-DB Control Panel</title>
     <style>
-        /* 簡單的 CSS 排版 */
         body { font-family: sans-serif; margin: 0; display: flex; height: 100vh; background-color: #f4f4f9; }
         
-        /* 左側邊欄：資料表清單 */
-        #sidebar {
-            width: 250px;
-            background-color: #2c3e50;
-            color: white;
-            padding: 20px;
-            overflow-y: auto;
-        }
-        #sidebar h2 { margin-top: 0; font-size: 1.2rem; border-bottom: 1px solid #34495e; padding-bottom: 10px; }
-        .table-btn {
-            display: block;
-            width: 100%;
-            padding: 10px;
-            margin-bottom: 5px;
-            background: none;
-            border: none;
-            color: #bdc3c7;
-            text-align: left;
-            cursor: pointer;
-            transition: 0.3s;
-        }
-        .table-btn:hover { background-color: #34495e; color: white; }
-        .table-btn.active { background-color: #1abc9c; color: white; }
-
-        /* 右側主畫面：資料表格 */
-        #main { flex: 1; padding: 20px; overflow: auto; }
-        #status { margin-bottom: 20px; padding: 10px; background: white; border-radius: 5px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
+        /* 雙層側邊欄設計 */
+        #sidebar-db { width: 150px; background-color: #222; color: #fff; overflow-y: auto; display: flex; flex-direction: column; }
+        #sidebar-table { width: 200px; background-color: #2c3e50; color: #fff; overflow-y: auto; border-left: 1px solid #444; }
         
-        table { width: 100%; border-collapse: collapse; background: white; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
-        th, td { padding: 12px; border-bottom: 1px solid #ddd; text-align: left; }
-        th { background-color: #ecf0f1; font-weight: bold; }
-        tr:hover { background-color: #f9f9f9; }
+        .section-title { padding: 15px; font-size: 0.9rem; color: #888; text-transform: uppercase; border-bottom: 1px solid #444; }
+        
+        .nav-btn {
+            padding: 15px; border: none; background: none; color: #ccc; 
+            text-align: left; cursor: pointer; width: 100%; transition: 0.2s;
+            border-bottom: 1px solid #333;
+        }
+        .nav-btn:hover { background-color: #444; color: white; }
+        .nav-btn.active { background-color: #007bff; color: white; } /* 選中 DB */
+        .nav-btn.table-active { background-color: #1abc9c; color: white; } /* 選中 Table */
+
+        #main { flex: 1; padding: 20px; overflow: auto; }
+        
+        table { width: 100%; border-collapse: collapse; background: white; margin-top: 10px; }
+        th, td { padding: 10px; border-bottom: 1px solid #ddd; text-align: left; }
+        th { background-color: #eee; }
     </style>
 </head>
 <body>
 
-    <div id="sidebar">
-        <h2>資料庫列表</h2>
-        <div id="table-list">載入中...</div>
+    <div id="sidebar-db">
+        <div class="section-title">Databases</div>
+        <div id="db-list"></div>
+    </div>
+
+    <div id="sidebar-table">
+        <div class="section-title">Tables</div>
+        <div id="table-list" style="padding:10px; font-size:0.9rem; color:#aaa;">請先選擇資料庫</div>
     </div>
 
     <div id="main">
-        <div id="status">準備就緒</div>
-        <div id="data-container">
-            <h3>請從左側選擇一個資料表</h3>
-        </div>
+        <h2 id="current-path">Dashboard</h2>
+        <div id="data-container"></div>
     </div>
 
     <script>
-        // 設定後端 API 的位置
-        // 注意：因為你的 Node.js 跑在 3000，而 HTML 可能由 Nginx (80) 或是直接開啟
         const API_BASE = 'http://localhost:3000/api';
+        let currentDB = '';
 
-        const tableListEl = document.getElementById('table-list');
-        const dataContainerEl = document.getElementById('data-container');
-        const statusEl = document.getElementById('status');
-
-        // 1. 初始化：載入資料表清單
-        async function loadTables() {
-            try {
-                const res = await fetch(`${API_BASE}/tables`);
-                const json = await res.json();
-                
-                tableListEl.innerHTML = ''; // 清空
-                
-                if (json.tables && json.tables.length > 0) {
-                    json.tables.forEach(tableName => {
-                        const btn = document.createElement('button');
-                        btn.className = 'table-btn';
-                        btn.textContent = tableName;
-                        btn.onclick = () => loadData(tableName, btn);
-                        tableListEl.appendChild(btn);
-                    });
-                    statusEl.textContent = `連線成功，找到 ${json.tables.length} 個資料表`;
-                    statusEl.style.color = 'green';
-                } else {
-                    tableListEl.innerHTML = '沒有資料表';
-                }
-            } catch (err) {
-                console.error(err);
-                statusEl.textContent = '無法連線到後端 API (請確認 node server.js 有跑起來)';
-                statusEl.style.color = 'red';
-            }
+        // 1. 初始化：載入資料庫列表
+        async function loadDatabases() {
+            const res = await fetch(`${API_BASE}/databases`);
+            const json = await res.json();
+            
+            const container = document.getElementById('db-list');
+            container.innerHTML = '';
+            
+            json.databases.forEach(db => {
+                const btn = document.createElement('button');
+                btn.className = 'nav-btn';
+                btn.textContent = db;
+                btn.onclick = () => selectDatabase(db, btn);
+                container.appendChild(btn);
+            });
         }
 
-        // 2. 載入特定資料表的內容
-        async function loadData(tableName, btnElement) {
-            // 更新按鈕樣式
-            document.querySelectorAll('.table-btn').forEach(b => b.classList.remove('active'));
-            if(btnElement) btnElement.classList.add('active');
-
-            dataContainerEl.innerHTML = '載入資料中...';
+        // 2. 選取資料庫 -> 載入 Tables
+        async function selectDatabase(dbName, btnElement) {
+            currentDB = dbName;
+            
+            // UI 更新
+            document.querySelectorAll('#sidebar-db .nav-btn').forEach(b => b.classList.remove('active'));
+            btnElement.classList.add('active');
+            document.getElementById('current-path').textContent = `DB: ${dbName}`;
+            document.getElementById('table-list').innerHTML = '載入中...';
+            document.getElementById('data-container').innerHTML = '';
 
             try {
-                const res = await fetch(`${API_BASE}/data?table=${tableName}`);
+                const res = await fetch(`${API_BASE}/tables?db=${dbName}`);
                 const json = await res.json();
-                const data = json.data;
+                
+                const container = document.getElementById('table-list');
+                container.innerHTML = '';
 
-                if (data.length === 0) {
-                    dataContainerEl.innerHTML = `<h3>資料表 ${tableName} 是空的</h3>`;
+                if(json.tables.length === 0) {
+                    container.innerHTML = '<div style="padding:10px">無資料表</div>';
                     return;
                 }
 
-                // 動態產生 HTML Table
-                let html = `<h3>${tableName} (前 100 筆)</h3><table><thead><tr>`;
+                json.tables.forEach(table => {
+                    const btn = document.createElement('button');
+                    btn.className = 'nav-btn';
+                    btn.textContent = table;
+                    btn.onclick = () => loadData(table, btn);
+                    container.appendChild(btn);
+                });
+            } catch (err) {
+                console.error(err);
+            }
+        }
+
+        // 3. 選取 Table -> 載入資料
+        async function loadData(tableName, btnElement) {
+            // UI 更新
+            document.querySelectorAll('#sidebar-table .nav-btn').forEach(b => b.classList.remove('table-active'));
+            btnElement.classList.add('table-active');
+            document.getElementById('current-path').textContent = `DB: ${currentDB} > Table: ${tableName}`;
+            document.getElementById('data-container').innerHTML = '載入資料中...';
+
+            try {
+                const res = await fetch(`${API_BASE}/data?db=${currentDB}&table=${tableName}`);
+                const json = await res.json();
                 
-                // 抓取欄位名稱 (Header)
+                const data = json.data;
+                if (data.length === 0) {
+                    document.getElementById('data-container').innerHTML = '此表為空';
+                    return;
+                }
+
+                let html = '<table><thead><tr>';
                 const headers = Object.keys(data[0]);
                 headers.forEach(h => html += `<th>${h}</th>`);
                 html += '</tr></thead><tbody>';
-
-                // 抓取資料列 (Rows)
                 data.forEach(row => {
                     html += '<tr>';
                     headers.forEach(h => html += `<td>${row[h]}</td>`);
@@ -127,15 +131,13 @@
                 });
                 html += '</tbody></table>';
 
-                dataContainerEl.innerHTML = html;
-
+                document.getElementById('data-container').innerHTML = html;
             } catch (err) {
-                dataContainerEl.innerHTML = `<p style="color:red">讀取錯誤: ${err.message}</p>`;
+                document.getElementById('data-container').innerHTML = `<p style="color:red">${err.message}</p>`;
             }
         }
 
-        // 執行初始化
-        loadTables();
+        loadDatabases();
     </script>
 </body>
 </html>

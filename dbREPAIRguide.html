@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MariaDB 資料庫安裝與重置指南</title>
+    <style>
+        :root {
+            --primary: #00618a; /* MariaDB Blue */
+            --danger: #dc3545;
+            --success: #198754;
+            --bg: #f4f6f9;
+            --code-bg: #212529;
+            --code-text: #e9ecef;
+        }
+
+        body {
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            line-height: 1.6;
+            background-color: var(--bg);
+            color: #333;
+            margin: 0;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            padding: 40px;
+            border-radius: 10px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+
+        h1 {
+            color: var(--primary);
+            text-align: center;
+            border-bottom: 2px solid #eee;
+            padding-bottom: 20px;
+        }
+
+        h2 {
+            margin-top: 40px;
+            border-left: 5px solid var(--primary);
+            padding-left: 15px;
+            color: #444;
+        }
+
+        h2.danger {
+            border-left-color: var(--danger);
+            color: var(--danger);
+        }
+
+        .step-box {
+            background: #fff;
+            border: 1px solid #ddd;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+
+        pre {
+            background-color: var(--code-bg);
+            color: var(--code-text);
+            padding: 15px;
+            border-radius: 6px;
+            overflow-x: auto;
+            font-family: 'Consolas', 'Monaco', monospace;
+            position: relative;
+        }
+
+        code {
+            font-family: 'Consolas', 'Monaco', monospace;
+        }
+
+        .note {
+            background-color: #e7f5ff;
+            border-left: 4px solid var(--primary);
+            padding: 15px;
+            margin: 15px 0;
+        }
+
+        .alert {
+            background-color: #fff5f5;
+            border-left: 4px solid var(--danger);
+            padding: 15px;
+            margin: 15px 0;
+            color: #842029;
+        }
+
+        ul {
+            padding-left: 20px;
+        }
+
+        li {
+            margin-bottom: 10px;
+        }
+
+        .qa-list dt {
+            font-weight: bold;
+            margin-top: 15px;
+        }
+        .qa-list dd {
+            margin-left: 20px;
+            margin-bottom: 10px;
+            color: #555;
+        }
+        
+        .badge {
+            display: inline-block;
+            padding: 3px 8px;
+            border-radius: 4px;
+            font-size: 0.85em;
+            font-weight: bold;
+            color: white;
+        }
+        .badge-wsl { background-color: #6f42c1; }
+
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>MariaDB 資料庫完全手冊<br><small style="font-size: 0.5em; color: #666;">安裝、設定與緊急救援 (Ubuntu / WSL)</small></h1>
+
+    <div class="note">
+        這份指南適用於 Ubuntu 22.04 LTS。如果您使用 <strong>WSL</strong>，請特別注意標記為 <span class="badge badge-wsl">WSL 專用</span> 的提示。
+    </div>
+
+    <h2>第一階段：全新安裝</h2>
+    
+    <div class="step-box">
+        <h3>1. 更新並安裝</h3>
+        <p>確保系統抓到最新的資料庫版本。</p>
+        <pre><code>sudo apt update
+sudo apt install mariadb-server -y</code></pre>
+    </div>
+
+    <div class="step-box">
+        <h3>2. 啟動服務 <span class="badge badge-wsl">WSL 重點</span></h3>
+        <p>WSL 不會自動啟動服務，安裝完必須手動開啟 (看到 active 代表成功)。</p>
+        <pre><code>sudo service mariadb start
+sudo service mariadb status</code></pre>
+    </div>
+
+    <h2>第二階段：安全設定 (最容易出錯處)</h2>
+    <p>安裝後必須執行此指令來設定 Root 密碼。</p>
+    <pre><code>sudo mysql_secure_installation</code></pre>
+
+    <div class="step-box">
+        <h3>設定問答對照表</h3>
+        <dl class="qa-list">
+            <dt>1. Enter current password for root (enter for none):</dt>
+            <dd>👉 <strong>直接按 Enter</strong> (因為剛裝好沒密碼)</dd>
+
+            <dt>2. Switch to unix_socket authentication? [Y/n]</dt>
+            <dd>👉 輸入 <strong>n</strong> (我們想用傳統密碼登入)</dd>
+
+            <dt>3. Change the root password? [Y/n]</dt>
+            <dd>👉 輸入 <strong>y</strong></dd>
+            <dd>👉 輸入新密碼 (螢幕不會顯示)，再輸入一次確認。</dd>
+
+            <dt>4. Remove anonymous users? [Y/n]</dt>
+            <dd>👉 輸入 <strong>y</strong> (移除匿名帳號)</dd>
+
+            <dt>5. Disallow root login remotely? [Y/n]</dt>
+            <dd>👉 輸入 <strong>y</strong> (禁止 root 遠端登入)</dd>
+
+            <dt>6. Remove test database? [Y/n]</dt>
+            <dd>👉 輸入 <strong>y</strong> (刪除測試資料)</dd>
+
+            <dt>7. Reload privilege tables now? [Y/n]</dt>
+            <dd>👉 輸入 <strong>y</strong> (生效設定)</dd>
+        </dl>
+    </div>
+
+    <h2>第三階段：建立一般使用者</h2>
+    <p>不要使用 Root 跑程式，建立一個專用帳號。</p>
+    
+    <h3>1. 登入資料庫</h3>
+    <pre><code>sudo mariadb -u root -p</code></pre>
+    <p><em>(輸入剛剛設定的 Root 密碼)</em></p>
+
+    <h3>2. 執行 SQL 指令</h3>
+    <p>將以下指令複製貼上 (可自行修改帳號密碼)：</p>
+    <pre><code>-- 建立資料庫
+CREATE DATABASE mydb;
+
+-- 建立使用者 (請自行修改 myuser 與 mypassword)
+CREATE USER 'myuser'@'localhost' IDENTIFIED BY 'mypassword';
+
+-- 給予權限
+GRANT ALL PRIVILEGES ON mydb.* TO 'myuser'@'localhost';
+
+-- 重新載入並離開
+FLUSH PRIVILEGES;
+EXIT;</code></pre>
+
+    <h3>3. 測試新帳號</h3>
+    <pre><code>mariadb -u myuser -p</code></pre>
+    <p>如果成功登入，代表安裝完成！</p>
+
+    <hr style="margin: 50px 0; border: 0; border-top: 2px dashed #ccc;">
+
+    <h2 class="danger">⚠️ 緊急救援：徹底刪除並重裝</h2>
+    <div class="alert">
+        <strong>警告：</strong> 如果您設定失敗、忘記密碼或系統錯亂，請執行此區塊。
+        <br><strong>這將會刪除所有資料庫內容，讓系統回到還沒安裝前的狀態。</strong>
+    </div>
+
+    <div class="step-box">
+        <h3>步驟 1: 停止服務與移除軟體</h3>
+        <pre><code># 停止運作
+sudo service mariadb stop
+
+# 移除軟體與設定檔
+sudo apt purge mariadb-server mariadb-client mariadb-common -y
+
+# 清除相依套件
+sudo apt autoremove -y
+sudo apt autoclean</code></pre>
+    </div>
+
+    <div class="step-box" style="border-color: var(--danger);">
+        <h3 style="color: var(--danger);">步驟 2: 手動刪除殘留檔案 (關鍵)</h3>
+        <p>這一步最重要，如果不刪除這些資料夾，重裝後舊的錯誤設定還會存在。</p>
+        <pre><code># 刪除設定檔目錄
+sudo rm -rf /etc/mysql
+
+# 刪除資料庫儲存目錄 (這裡存著舊密碼)
+sudo rm -rf /var/lib/mysql</code></pre>
+    </div>
+
+    <div class="step-box">
+        <h3>步驟 3: 重新開始</h3>
+        <p>執行完上述步驟後，請回到文件最上方的 <strong>「第一階段」</strong> 重新安裝即可。</p>
+    </div>
+
+</div>
+
+</body>
+</html>

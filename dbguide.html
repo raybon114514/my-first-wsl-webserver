@@ -3,240 +3,351 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MariaDB 資料庫安裝與重置指南</title>
+    <title>MariaDB 詳細操作手冊</title>
     <style>
         :root {
-            --primary: #00618a; /* MariaDB Blue */
-            --danger: #dc3545;
-            --success: #198754;
-            --bg: #f4f6f9;
-            --code-bg: #212529;
-            --code-text: #e9ecef;
+            --primary-color: #003566;
+            --secondary-color: #ffc300;
+            --text-color: #333;
+            --bg-color: #f4f4f9;
+            --code-bg: #2d2d2d;
+            --code-text: #f8f8f2;
+            --sidebar-width: 250px;
         }
+
+        * { box-sizing: border-box; }
 
         body {
-            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-            line-height: 1.6;
-            background-color: var(--bg);
-            color: #333;
+            font-family: "Segoe UI", "Microsoft JhengHei", sans-serif;
             margin: 0;
+            display: flex;
+            color: var(--text-color);
+            background-color: var(--bg-color);
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        /* Sidebar Navigation */
+        nav {
+            width: var(--sidebar-width);
+            background-color: var(--primary-color);
+            color: white;
+            display: flex;
+            flex-direction: column;
             padding: 20px;
+            overflow-y: auto;
+            flex-shrink: 0;
         }
 
-        .container {
-            max-width: 800px;
-            margin: 0 auto;
-            background: white;
-            padding: 40px;
-            border-radius: 10px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
-        }
-
-        h1 {
-            color: var(--primary);
-            text-align: center;
-            border-bottom: 2px solid #eee;
-            padding-bottom: 20px;
-        }
-
-        h2 {
-            margin-top: 40px;
-            border-left: 5px solid var(--primary);
-            padding-left: 15px;
-            color: #444;
-        }
-
-        h2.danger {
-            border-left-color: var(--danger);
-            color: var(--danger);
-        }
-
-        .step-box {
-            background: #fff;
-            border: 1px solid #ddd;
-            padding: 20px;
-            border-radius: 8px;
+        nav h2 {
+            font-size: 1.2rem;
+            border-bottom: 2px solid var(--secondary-color);
+            padding-bottom: 10px;
             margin-bottom: 20px;
         }
 
+        nav ul {
+            list-style: none;
+            padding: 0;
+        }
+
+        nav li {
+            margin-bottom: 10px;
+        }
+
+        nav a {
+            text-decoration: none;
+            color: #ccc;
+            display: block;
+            padding: 8px;
+            border-radius: 4px;
+            transition: 0.3s;
+        }
+
+        nav a:hover, nav a.active {
+            color: white;
+            background-color: rgba(255, 255, 255, 0.1);
+            padding-left: 15px;
+        }
+
+        /* Main Content */
+        main {
+            flex-grow: 1;
+            padding: 40px;
+            overflow-y: auto;
+            scroll-behavior: smooth;
+        }
+
+        header {
+            margin-bottom: 40px;
+            border-bottom: 1px solid #ddd;
+            padding-bottom: 20px;
+        }
+
+        h1 { color: var(--primary-color); }
+        h3 { color: #00509d; margin-top: 30px; }
+
+        section {
+            background: white;
+            padding: 30px;
+            margin-bottom: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+        }
+
+        /* Code Blocks */
         pre {
             background-color: var(--code-bg);
             color: var(--code-text);
             padding: 15px;
             border-radius: 6px;
             overflow-x: auto;
-            font-family: 'Consolas', 'Monaco', monospace;
-            position: relative;
+            font-family: 'Consolas', 'Courier New', monospace;
+            border-left: 5px solid var(--secondary-color);
         }
 
         code {
-            font-family: 'Consolas', 'Monaco', monospace;
+            font-family: inherit;
         }
 
-        .note {
-            background-color: #e7f5ff;
-            border-left: 4px solid var(--primary);
-            padding: 15px;
-            margin: 15px 0;
-        }
+        .comment { color: #999; font-style: italic; }
+        .keyword { color: #ff79c6; font-weight: bold; }
+        .string { color: #f1fa8c; }
+        .function { color: #8be9fd; }
 
-        .alert {
-            background-color: #fff5f5;
-            border-left: 4px solid var(--danger);
-            padding: 15px;
-            margin: 15px 0;
-            color: #842029;
+        /* Tables */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
         }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 12px;
+            text-align: left;
+        }
+        th { background-color: #eee; }
 
-        ul {
-            padding-left: 20px;
-        }
-
-        li {
-            margin-bottom: 10px;
-        }
-
-        .qa-list dt {
-            font-weight: bold;
-            margin-top: 15px;
-        }
-        .qa-list dd {
-            margin-left: 20px;
-            margin-bottom: 10px;
-            color: #555;
-        }
-        
+        /* Utility Classes */
         .badge {
             display: inline-block;
-            padding: 3px 8px;
+            background: #e0e0e0;
+            padding: 2px 6px;
             border-radius: 4px;
             font-size: 0.85em;
-            font-weight: bold;
-            color: white;
+            margin-right: 5px;
         }
-        .badge-wsl { background-color: #6f42c1; }
-
+        .warning {
+            background-color: #fff3cd;
+            border-left: 5px solid #ffc107;
+            padding: 15px;
+            margin: 15px 0;
+            color: #856404;
+        }
     </style>
 </head>
 <body>
 
-<div class="container">
-    <h1>MariaDB 資料庫完全手冊<br><small style="font-size: 0.5em; color: #666;">安裝、設定與緊急救援 (Ubuntu / WSL)</small></h1>
+    <nav>
+        <h2>MariaDB 操作手冊</h2>
+        <ul>
+            <li><a href="#intro">1. 簡介與登入</a></li>
+            <li><a href="#ddl">2. 資料庫與資料表 (DDL)</a></li>
+            <li><a href="#dml-basic">3. 基本增刪改查 (CRUD)</a></li>
+            <li><a href="#dml-select">4. 進階查詢 (Select)</a></li>
+            <li><a href="#join">5. 多表聯查 (JOIN)</a></li>
+            <li><a href="#user">6. 用戶權限管理</a></li>
+            <li><a href="#backup">7. 備份與還原</a></li>
+        </ul>
+    </nav>
 
-    <div class="note">
-        這份指南適用於 Ubuntu 22.04 LTS。如果您使用 <strong>WSL</strong>，請特別注意標記為 <span class="badge badge-wsl">WSL 專用</span> 的提示。
-    </div>
+    <main>
+        <header>
+            <h1>MariaDB SQL 指令速查手冊</h1>
+            <p>本手冊著重於常用的 SQL 語句操作，適用於開發與維運參考。</p>
+        </header>
 
-    <h2>第一階段：全新安裝</h2>
-    
-    <div class="step-box">
-        <h3>1. 更新並安裝</h3>
-        <p>確保系統抓到最新的資料庫版本。</p>
-        <pre><code>sudo apt update
-sudo apt install mariadb-server -y</code></pre>
-    </div>
+        <section id="intro">
+            <h2>1. 簡介與登入</h2>
+            <p>MariaDB 是 MySQL 的分支，指令高度相容。以下為終端機操作指令。</p>
+            
+            <h3>登入資料庫</h3>
+            <pre><code><span class="comment"># 基本登入 (-u 使用者 -p 密碼)</span>
+mysql -u root -p
 
-    <div class="step-box">
-        <h3>2. 啟動服務 <span class="badge badge-wsl">WSL 重點</span></h3>
-        <p>WSL 不會自動啟動服務，安裝完必須手動開啟 (看到 active 代表成功)。</p>
-        <pre><code>sudo service mariadb start
-sudo service mariadb status</code></pre>
-    </div>
+<span class="comment"># 登入特定資料庫</span>
+mysql -u username -p database_name</code></pre>
 
-    <h2>第二階段：安全設定 (最容易出錯處)</h2>
-    <p>安裝後必須執行此指令來設定 Root 密碼。</p>
-    <pre><code>sudo mysql_secure_installation</code></pre>
+            <h3>常用系統指令</h3>
+            <ul>
+                <li><code>SHOW DATABASES;</code> : 列出所有資料庫。</li>
+                <li><code>USE db_name;</code> : 切換/使用該資料庫。</li>
+                <li><code>SHOW TABLES;</code> : 列出當前資料庫的所有資料表。</li>
+                <li><code>DESCRIBE table_name;</code> : 查看資料表結構。</li>
+                <li><code>STATUS;</code> : 查看系統狀態（編碼、版本等）。</li>
+                <li><code>EXIT;</code> : 離開 MariaDB。</li>
+            </ul>
+        </section>
 
-    <div class="step-box">
-        <h3>設定問答對照表</h3>
-        <dl class="qa-list">
-            <dt>1. Enter current password for root (enter for none):</dt>
-            <dd>👉 <strong>直接按 Enter</strong> (因為剛裝好沒密碼)</dd>
+        <section id="ddl">
+            <h2>2. 資料庫與資料表定義 (DDL)</h2>
+            <p>Data Definition Language，用於定義資料結構。</p>
 
-            <dt>2. Switch to unix_socket authentication? [Y/n]</dt>
-            <dd>👉 輸入 <strong>n</strong> (我們想用傳統密碼登入)</dd>
+            <h3>建立/刪除 資料庫</h3>
+            <pre><code><span class="keyword">CREATE DATABASE</span> my_shop <span class="keyword">CHARACTER SET</span> utf8mb4 <span class="keyword">COLLATE</span> utf8mb4_unicode_ci;
 
-            <dt>3. Change the root password? [Y/n]</dt>
-            <dd>👉 輸入 <strong>y</strong></dd>
-            <dd>👉 輸入新密碼 (螢幕不會顯示)，再輸入一次確認。</dd>
+<span class="comment"># 刪除資料庫 (慎用)</span>
+<span class="keyword">DROP DATABASE</span> my_shop;</code></pre>
 
-            <dt>4. Remove anonymous users? [Y/n]</dt>
-            <dd>👉 輸入 <strong>y</strong> (移除匿名帳號)</dd>
+            <h3>建立資料表 (Create Table)</h3>
+            <p>範例：建立一個會員表 `users`。</p>
+            <pre><code><span class="keyword">CREATE TABLE</span> users (
+    id <span class="keyword">INT</span> <span class="keyword">AUTO_INCREMENT</span> <span class="keyword">PRIMARY KEY</span>,  <span class="comment">-- 自動遞增的主鍵</span>
+    username <span class="keyword">VARCHAR</span>(50) <span class="keyword">NOT NULL</span>,      <span class="comment">-- 字串，不可為空</span>
+    email <span class="keyword">VARCHAR</span>(100) <span class="keyword">UNIQUE</span>,          <span class="comment">-- 必須唯一</span>
+    age <span class="keyword">INT</span> <span class="keyword">DEFAULT</span> 18,                 <span class="comment">-- 預設值為 18</span>
+    created_at <span class="keyword">TIMESTAMP</span> <span class="keyword">DEFAULT</span> CURRENT_TIMESTAMP <span class="comment">-- 自動填入當前時間</span>
+);</code></pre>
 
-            <dt>5. Disallow root login remotely? [Y/n]</dt>
-            <dd>👉 輸入 <strong>y</strong> (禁止 root 遠端登入)</dd>
+            <h3>修改資料表結構 (Alter)</h3>
+            <pre><code><span class="comment"># 新增欄位</span>
+<span class="keyword">ALTER TABLE</span> users <span class="keyword">ADD COLUMN</span> phone <span class="keyword">VARCHAR</span>(20);
 
-            <dt>6. Remove test database? [Y/n]</dt>
-            <dd>👉 輸入 <strong>y</strong> (刪除測試資料)</dd>
+<span class="comment"># 修改欄位屬性</span>
+<span class="keyword">ALTER TABLE</span> users <span class="keyword">MODIFY</span> username <span class="keyword">VARCHAR</span>(100);
 
-            <dt>7. Reload privilege tables now? [Y/n]</dt>
-            <dd>👉 輸入 <strong>y</strong> (生效設定)</dd>
-        </dl>
-    </div>
+<span class="comment"># 刪除欄位</span>
+<span class="keyword">ALTER TABLE</span> users <span class="keyword">DROP COLUMN</span> age;</code></pre>
+        </section>
 
-    <h2>第三階段：建立一般使用者</h2>
-    <p>不要使用 Root 跑程式，建立一個專用帳號。</p>
-    
-    <h3>1. 登入資料庫</h3>
-    <pre><code>sudo mariadb -u root -p</code></pre>
-    <p><em>(輸入剛剛設定的 Root 密碼)</em></p>
+        <section id="dml-basic">
+            <h2>3. 基本增刪改查 (CRUD)</h2>
+            <p>Data Manipulation Language，最常用的資料操作部分。</p>
 
-    <h3>2. 執行 SQL 指令</h3>
-    <p>將以下指令複製貼上 (可自行修改帳號密碼)：</p>
-    <pre><code>-- 建立資料庫
-CREATE DATABASE mydb;
+            <h3>新增資料 (INSERT)</h3>
+            <pre><code><span class="comment"># 插入單筆資料</span>
+<span class="keyword">INSERT INTO</span> users (username, email, age) 
+<span class="keyword">VALUES</span> (<span class="string">'JohnDoe'</span>, <span class="string">'john@example.com'</span>, 25);
 
--- 建立使用者 (請自行修改 myuser 與 mypassword)
-CREATE USER 'myuser'@'localhost' IDENTIFIED BY 'mypassword';
+<span class="comment"># 插入多筆資料 (效率較高)</span>
+<span class="keyword">INSERT INTO</span> users (username, email) 
+<span class="keyword">VALUES</span> 
+    (<span class="string">'Alice'</span>, <span class="string">'alice@test.com'</span>),
+    (<span class="string">'Bob'</span>, <span class="string">'bob@test.com'</span>);</code></pre>
 
--- 給予權限
-GRANT ALL PRIVILEGES ON mydb.* TO 'myuser'@'localhost';
+            <h3>更新資料 (UPDATE)</h3>
+            <div class="warning">
+                <strong>警告：</strong> 執行 UPDATE 時，請務必加上 <code>WHERE</code> 條件，否則會更新整張表的資料！
+            </div>
+            <pre><code><span class="keyword">UPDATE</span> users 
+<span class="keyword">SET</span> age = 26, email = <span class="string">'new_email@test.com'</span> 
+<span class="keyword">WHERE</span> id = 1;</code></pre>
 
--- 重新載入並離開
-FLUSH PRIVILEGES;
-EXIT;</code></pre>
+            <h3>刪除資料 (DELETE)</h3>
+            <div class="warning">
+                <strong>警告：</strong> 執行 DELETE 時若未加 <code>WHERE</code>，將會清空整張表！
+            </div>
+            <pre><code><span class="keyword">DELETE FROM</span> users 
+<span class="keyword">WHERE</span> username = <span class="string">'Bob'</span>;</code></pre>
+        </section>
 
-    <h3>3. 測試新帳號</h3>
-    <pre><code>mariadb -u myuser -p</code></pre>
-    <p>如果成功登入，代表安裝完成！</p>
+        <section id="dml-select">
+            <h2>4. 進階查詢 (Select)</h2>
+            <p>資料分析與撈取的核心。</p>
 
-    <hr style="margin: 50px 0; border: 0; border-top: 2px dashed #ccc;">
+            <h3>條件查詢 (WHERE)</h3>
+            <pre><code><span class="comment"># 基本比較</span>
+<span class="keyword">SELECT</span> * <span class="keyword">FROM</span> users <span class="keyword">WHERE</span> age >= 20;
 
-    <h2 class="danger">⚠️ 緊急救援：徹底刪除並重裝</h2>
-    <div class="alert">
-        <strong>警告：</strong> 如果您設定失敗、忘記密碼或系統錯亂，請執行此區塊。
-        <br><strong>這將會刪除所有資料庫內容，讓系統回到還沒安裝前的狀態。</strong>
-    </div>
+<span class="comment"># 多重條件 (AND, OR)</span>
+<span class="keyword">SELECT</span> * <span class="keyword">FROM</span> users <span class="keyword">WHERE</span> age > 18 <span class="keyword">AND</span> username = <span class="string">'Alice'</span>;
 
-    <div class="step-box">
-        <h3>步驟 1: 停止服務與移除軟體</h3>
-        <pre><code># 停止運作
-sudo service mariadb stop
+<span class="comment"># 範圍查詢 (BETWEEN, IN)</span>
+<span class="keyword">SELECT</span> * <span class="keyword">FROM</span> users <span class="keyword">WHERE</span> age <span class="keyword">BETWEEN</span> 20 <span class="keyword">AND</span> 30;
+<span class="keyword">SELECT</span> * <span class="keyword">FROM</span> users <span class="keyword">WHERE</span> id <span class="keyword">IN</span> (1, 3, 5);</code></pre>
 
-# 移除軟體與設定檔
-sudo apt purge mariadb-server mariadb-client mariadb-common -y
+            <h3>模糊查詢 (LIKE)</h3>
+            <p><code>%</code> 代表任意字元，<code>_</code> 代表單一字元。</p>
+            <pre><code><span class="comment"># 找出 email 結尾是 @gmail.com 的人</span>
+<span class="keyword">SELECT</span> * <span class="keyword">FROM</span> users <span class="keyword">WHERE</span> email <span class="keyword">LIKE</span> <span class="string">'%@gmail.com'</span>;
 
-# 清除相依套件
-sudo apt autoremove -y
-sudo apt autoclean</code></pre>
-    </div>
+<span class="comment"># 找出名字以 J 開頭的人</span>
+<span class="keyword">SELECT</span> * <span class="keyword">FROM</span> users <span class="keyword">WHERE</span> username <span class="keyword">LIKE</span> <span class="string">'J%'</span>;</code></pre>
 
-    <div class="step-box" style="border-color: var(--danger);">
-        <h3 style="color: var(--danger);">步驟 2: 手動刪除殘留檔案 (關鍵)</h3>
-        <p>這一步最重要，如果不刪除這些資料夾，重裝後舊的錯誤設定還會存在。</p>
-        <pre><code># 刪除設定檔目錄
-sudo rm -rf /etc/mysql
+            <h3>排序與限制 (ORDER BY, LIMIT)</h3>
+            <pre><code><span class="comment"># 依照年齡由大到小排序 (DESC), 取前 10 筆</span>
+<span class="keyword">SELECT</span> * <span class="keyword">FROM</span> users 
+<span class="keyword">ORDER BY</span> age <span class="keyword">DESC</span> 
+<span class="keyword">LIMIT</span> 10;</code></pre>
 
-# 刪除資料庫儲存目錄 (這裡存著舊密碼)
-sudo rm -rf /var/lib/mysql</code></pre>
-    </div>
+            <h3>聚合函數與分組 (GROUP BY)</h3>
+            <p>常用函數：<code>COUNT()</code>, <code>SUM()</code>, <code>AVG()</code>, <code>MAX()</code>, <code>MIN()</code>。</p>
+            <pre><code><span class="comment"># 計算每個年齡層有多少人</span>
+<span class="keyword">SELECT</span> age, <span class="function">COUNT</span>(*) <span class="keyword">as</span> user_count 
+<span class="keyword">FROM</span> users 
+<span class="keyword">GROUP BY</span> age
+<span class="keyword">HAVING</span> user_count > 1; <span class="comment"># 只顯示人數大於 1 的分組</span></code></pre>
+        </section>
 
-    <div class="step-box">
-        <h3>步驟 3: 重新開始</h3>
-        <p>執行完上述步驟後，請回到文件最上方的 <strong>「第一階段」</strong> 重新安裝即可。</p>
-    </div>
+        <section id="join">
+            <h2>5. 多表聯查 (JOIN)</h2>
+            <p>假設有兩張表：<code>users</code> (用戶) 和 <code>orders</code> (訂單)。</p>
 
-</div>
+            <h3>內部連接 (INNER JOIN)</h3>
+            <p>只列出兩邊都有對應資料的結果。</p>
+            <pre><code><span class="keyword">SELECT</span> users.username, orders.order_id, orders.amount
+<span class="keyword">FROM</span> users
+<span class="keyword">INNER JOIN</span> orders <span class="keyword">ON</span> users.id = orders.user_id;</code></pre>
+
+            <h3>左連接 (LEFT JOIN)</h3>
+            <p>列出左表 (users) 所有資料，若右表 (orders) 沒資料則顯示 NULL。</p>
+            <pre><code><span class="keyword">SELECT</span> users.username, orders.order_id
+<span class="keyword">FROM</span> users
+<span class="keyword">LEFT JOIN</span> orders <span class="keyword">ON</span> users.id = orders.user_id;</code></pre>
+        </section>
+
+        <section id="user">
+            <h2>6. 用戶權限管理</h2>
+            <p>正式環境中，不建議直接使用 root 操作應用程式。</p>
+
+            <h3>建立用戶與授權</h3>
+            <pre><code><span class="comment"># 1. 建立用戶 (只允許 localhost 連線)</span>
+<span class="keyword">CREATE USER</span> <span class="string">'web_admin'</span>@<span class="string">'localhost'</span> <span class="keyword">IDENTIFIED BY</span> <span class="string">'strong_password'</span>;
+
+<span class="comment"># 2. 賦予特定資料庫的所有權限</span>
+<span class="keyword">GRANT ALL PRIVILEGES ON</span> my_shop.* <span class="keyword">TO</span> <span class="string">'web_admin'</span>@<span class="string">'localhost'</span>;
+
+<span class="comment"># 3. 重新載入權限表 (重要)</span>
+<span class="keyword">FLUSH PRIVILEGES</span>;</code></pre>
+
+            <h3>查看與移除權限</h3>
+            <pre><code><span class="comment"># 查看權限</span>
+<span class="keyword">SHOW GRANTS FOR</span> <span class="string">'web_admin'</span>@<span class="string">'localhost'</span>;
+
+<span class="comment"># 移除用戶</span>
+<span class="keyword">DROP USER</span> <span class="string">'web_admin'</span>@<span class="string">'localhost'</span>;</code></pre>
+        </section>
+
+        <section id="backup">
+            <h2>7. 備份與還原</h2>
+            <p>這些指令是在 Linux 終端機執行，而非 MariaDB 內部。</p>
+
+            <h3>備份 (Dump)</h3>
+            <pre><code><span class="comment"># 匯出整個資料庫</span>
+mysqldump -u root -p my_shop > backup_2023.sql
+
+<span class="comment"># 匯出所有資料庫</span>
+mysqldump -u root -p --all-databases > all_backup.sql</code></pre>
+
+            <h3>還原 (Restore)</h3>
+            <pre><code><span class="comment"># 還原資料庫 (需先確認資料庫已建立)</span>
+mysql -u root -p my_shop < backup_2023.sql</code></pre>
+        </section>
+
+        <footer>
+            <p style="text-align: center; color: #666; margin-top: 50px;">MariaDB Operation Manual © Generated by AI</p>
+        </footer>
+    </main>
 
 </body>
 </html>

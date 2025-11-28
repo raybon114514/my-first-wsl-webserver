@@ -9,16 +9,18 @@ const bcrypt = require('bcryptjs');
 // ----------------------------------------------------
 router.post('/login', async (req, res) => {
     const { username, password } = req.body; // 前端現在要多傳 username
-
+    console.log('Login Request Body:', req.body);
     if (!username || !password) {
+        console.log('❌ 缺少帳號或密碼');
         return res.status(400).json({ success: false, message: "請輸入帳號密碼" });
     }
 
     try {
         // A. 去資料庫找這個人
         const [users] = await pool.query('SELECT * FROM admins WHERE username = ?', [username]);
-        
+        console.log('DB Search Result:', users);
         if (users.length === 0) {
+            console.log('❌ 找不到此帳號');
             return res.status(401).json({ success: false, message: "帳號或密碼錯誤" });
         }
 

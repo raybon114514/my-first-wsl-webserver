@@ -1,31 +1,67 @@
 const express = require('express');
 const router = express.Router();
 const pool = require('../db'); // 使用共用的 db.js，不要自己再 createPool
+const bcrypt = require('bcryptjs');
 
 // ----------------------------------------------------
 // 1. 登入 API
 // URL: POST /api/admin/login
 // ----------------------------------------------------
-router.post('/login', (req, res) => {
-    const { password } = req.body;
-    // 記得檢查你的 .env 檔，變數名稱是不是 router_PASSWORD
-    if (password === process.env.router_PASSWORD) {
-        res.json({ success: true, token: process.env.router_PASSWORD });
-    } else {
-        res.status(401).json({ success: false, message: "密碼錯誤" });
-    }                    
+router.post('/login', async (req, res) => {
+    const { username, password } = req.body; // 前端現在要多傳 username
+
+    if (!username || !password) {
+        return res.status(400).json({ success: false, message: "請輸入帳號密碼" });
+    }
+
+    try {
+        // A. 去資料庫找這個人
+        const [users] = await pool.query('SELECT * FROM admins WHERE username = ?', [username]);
+        
+        if (users.length === 0) {
+            return res.status(401).json({ success: false, message: "帳號或密碼錯誤" });
+        }
+
+        const adminUser = users[0];
+
+        // B. 比對密碼 (用 bcrypt.compare)
+        // 它會把使用者輸入的明文密碼，跟資料庫裡的亂碼 Hash 進行數學比對
+        const isMatch = await bcrypt.compare(password, adminUser.password_hash);
+
+        if (isMatch) {
+            // C. 登入成功！
+            // 實務上這裡會發 JWT，但目前我們簡單一點，回傳一個隨機 Token 或直接用 Hash 當 Token
+            // 為了簡化，我們暫時回傳 password_hash 當作通關權杖 (因為它是不會變的)
+            res.json({ success: true, token: adminUser.password_hash });
+        } else {
+            res.status(401).json({ success: false, message: "帳號或密碼錯誤" });
+        }
+
+    } catch (err) {
+        res.status(500).json({ success: false, message: err.message });
+    }
 });
 
 // ----------------------------------------------------
 // 2. 警衛 Middleware
 // 放在這裡，代表「除了 Login 以外，下面所有的 API 都要驗證」
 // ----------------------------------------------------
-router.use((req, res, next) => {
+router.use(async (req, res, next) => {
     const clientToken = req.headers['authorization'];
-    if (clientToken === process.env.router_PASSWORD) {
-        next(); // 通行
-    } else {
-        res.status(401).json({ error: "未授權：請先登入" });
+    
+    if (!clientToken) return res.status(401).json({ error: "未授權" });
+
+    // 這裡做一個簡單的驗證：拿 Token 去資料庫看看有沒有這個 Hash 存在
+    // (這不是最高效的做法，但在不引入 JWT 前這是最安全的)
+    try {
+        const [rows] = await pool.query('SELECT id FROM admins WHERE password_hash = ?', [clientToken]);
+        if (rows.length > 0) {
+            next(); // 資料庫有這個憑證，放行
+        } else {
+            res.status(401).json({ error: "無效的 Token" });
+        }
+    } catch (err) {
+        res.status(500).json({ error: "驗證錯誤" });
     }
 });
 

@@ -2,6 +2,7 @@ const API_BASE = 'http://localhost:3000/api/dbadmin';
 let currentDB = '';
 let authToken = ''; // 用來存密碼
 async function doLogin() {
+    const username = document.getElementById('login-user').value; // 新增
     const password = document.getElementById('login-pass').value;
     const msg = document.getElementById('login-msg');
 
@@ -10,7 +11,7 @@ async function doLogin() {
         const res = await fetch(`${API_BASE}/login`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ password })
+            body: JSON.stringify({ username, password })
         });
         const json = await res.json();
 

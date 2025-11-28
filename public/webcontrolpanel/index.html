@@ -30,7 +30,16 @@
     </style>
 </head>
 <body>
+    <div id="login-view" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #2c3e50; display: flex; justify-content: center; align-items: center; z-index: 9999;">
+        <div style="background: white; padding: 30px; border-radius: 8px; box-shadow: 0 5px 15px rgba(0,0,0,0.3); text-align: center; width: 300px;">
+            <h2 style="margin-top: 0; color: #333;">DB Admin Login</h2>
+            <input type="password" id="login-pass" placeholder="請輸入後台密碼" style="width: 100%; padding: 10px; margin: 10px 0; box-sizing: border-box;">
+            <button onclick="doLogin()" style="width: 100%; padding: 10px; background: #3498db; color: white; border: none; border-radius: 3px; cursor: pointer;">登入</button>
+            <p id="login-msg" style="color: red; font-size: 0.9rem; margin-top: 10px;"></p>
+        </div>
+    </div>
 
+    <div id="main-app" style="display: none; width: 100%; height: 100%;">
     <div id="sidebar-db">
         <div class="section-title">Databases</div>
         <div id="db-list"></div>
@@ -51,14 +60,61 @@
         </div>
         <div id="data-container"></div>
     </div>
+        
+    </div>
+
 
     <script>
         const API_BASE = 'http://localhost:3000/api';
         let currentDB = '';
+        let authToken = ''; // 用來存密碼
+        async function doLogin() {
+            const password = document.getElementById('login-pass').value;
+            const msg = document.getElementById('login-msg');
+            
+            try {
+                // 呼叫後端登入 API
+                const res = await fetch(`${API_BASE}/login`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ password })
+                });
+                const json = await res.json();
 
+                if (json.success) {
+                    // 登入成功
+                    authToken = json.token; // 把鑰匙存起來
+                    document.getElementById('login-view').style.display = 'none'; // 隱藏登入框
+                    document.getElementById('main-app').style.display = 'flex'; // 顯示主畫面
+                    
+                    // 開始載入資料
+                    loadDatabases();
+                } else {
+                    msg.textContent = '密碼錯誤';
+                }
+            } catch (err) {
+                msg.textContent = '無法連線到伺服器';
+            }
+        }
+        async function authFetch(url, options = {}) {
+                // 自動加上 Authorization Header
+                if (!options.headers) options.headers = {};
+                options.headers['Authorization'] = authToken;
+                options.headers['Content-Type'] = 'application/json'; // 預設都用 JSON
+
+                const res = await fetch(url, options);
+                
+                // 如果遇到 401 (未授權)，代表密碼過期或伺服器重啟
+                if (res.status === 401) {
+                    alert("連線逾時或未授權，請重新登入");
+                    location.reload(); // 重新整理回到登入頁
+                    throw new Error("Unauthorized");
+                }
+                return res;
+        }
         // 1. 初始化：載入資料庫列表
         async function loadDatabases() {
-            const res = await fetch(`${API_BASE}/databases`);
+            const res = await authFetch(`${API_BASE}/databases`);
             const json = await res.json();
             
             const container = document.getElementById('db-list');
@@ -85,7 +141,7 @@
             document.getElementById('data-container').innerHTML = '';
 
             try {
-                const res = await fetch(`${API_BASE}/tables?db=${dbName}`);
+                const res = await authFetch(`${API_BASE}/tables?db=${dbName}`);
                 const json = await res.json();
                 
                 const container = document.getElementById('table-list');
@@ -117,7 +173,7 @@
             document.getElementById('data-container').innerHTML = '載入資料中...';
 
             try {
-                const res = await fetch(`${API_BASE}/data?db=${currentDB}&table=${tableName}`);
+                const res = await authFetch(`${API_BASE}/data?db=${currentDB}&table=${tableName}`);
                 const json = await res.json();
                 
                 const data = json.data;
@@ -155,7 +211,7 @@
             document.getElementById('data-container').innerHTML = '執行中...';
 
             try {
-                const res = await fetch(`${API_BASE}/sql`, {
+                const res = await authFetch(`${API_BASE}/sql`, {
                     method: 'POST', // 使用 POST 方法
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ 
@@ -219,7 +275,6 @@
             }
         }
 
-        loadDatabases();
     </script>
 </body>
 </html>

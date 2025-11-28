@@ -3,8 +3,8 @@ require('dotenv').config();
 const bcrypt = require('bcryptjs');
 const pool = require('./db'); // 引用你的連線設定
 
-const USERNAME = 'raybon';     // 你想設定的帳號
-const PASSWORD = 'CLhs!31534' // 你想設定的密碼 (自己改)
+const USERNAME = '';     // 你想設定的帳號
+const PASSWORD = '' // 你想設定的密碼 (自己改)
 
 async function createAdmin() {
     try {

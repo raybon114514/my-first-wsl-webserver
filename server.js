@@ -75,6 +75,39 @@ app.get('/api/data', async (req, res) => {
     }
 });
 
+// 【新增功能】執行任意 SQL 指令 (這是 phpMyAdmin 的核心靈魂)
+// 呼叫方式: POST /api/sql (Body: { sql: "SELECT * FROM users", db: "mytestdb" })
+app.post('/api/sql', async (req, res) => {
+    const { sql, db } = req.body;
+
+    if (!sql) return res.status(400).json({ error: "請輸入 SQL 指令" });
+
+    try {
+        // 如果有指定資料庫，先切換過去
+        // 注意：這是在連線池的一條連線中執行，結束後會釋放，所以不會影響別人
+        const connection = await pool.getConnection();
+        
+        try {
+            if (db) {
+                await connection.changeUser({ database: db });
+            }
+            
+            // 執行 SQL
+            const [result] = await connection.query(sql);
+            
+            // 判斷是查詢(回傳陣列)還是操作(回傳物件)
+            // 如果是 SELECT，result 會是陣列
+            // 如果是 INSERT/UPDATE，result 會是 Header 物件
+            res.json({ result: result });
+            
+        } finally {
+            connection.release(); // 務必釋放連線
+        }
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
 // 【啟動伺服器】
 app.listen(PORT, () => {
     console.log(`Server running on http://localhost:${PORT}`);

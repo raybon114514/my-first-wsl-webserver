@@ -8,7 +8,6 @@ const bcrypt = require('bcryptjs');
 // ----------------------------------------------------
 router.post('/login', async (req, res) => {
     const { username, password } = req.body;
-    console.log('Login Request Body:', req.body);
     
     if (!username || !password) {
         return res.status(400).json({ success: false, message: "請輸入帳號密碼" });
@@ -75,7 +74,6 @@ router.get('/tables', async (req, res) => {
     const dbName = req.query.db;
     if (!dbName) return res.status(400).json({ error: "請指定資料庫" });
     try {
-        // ✅ 修正：拿掉多餘的前綴
         const [rows] = await pool.query(`SHOW TABLES FROM ${pool.escapeId(dbName)}`);
         res.json({ tables: rows.map(r => Object.values(r)[0]) });
     } catch (err) { res.status(500).json({ error: err.message }); }
@@ -85,7 +83,6 @@ router.get('/data', async (req, res) => {
     const { db, table } = req.query;
     if (!db || !table) return res.status(400).json({ error: "缺參數" });
     try {
-        // 這裡你有用反引號，是對的
         const sql = `SELECT * FROM ${pool.escapeId(db)}.${pool.escapeId(table)} LIMIT 100`;
         const [rows] = await pool.query(sql);
         res.json({ data: rows });
@@ -98,7 +95,7 @@ router.post('/sql', async (req, res) => {
 
     try {
         const connection = await pool.getConnection();
-        try {
+        try {   
             if (db) await connection.changeUser({ database: db });
             const [result] = await connection.query(sql);
             res.json({ result: result });

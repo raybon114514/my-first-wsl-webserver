@@ -11,25 +11,25 @@
 
 1.外部訪問 (Public)
 
-    使用者透過 ngrok (https://xxx.ngrok.app) 進入。
+-使用者透過 ngrok (https://xxx.ngrok.app) 進入。
 
-    流量進入 Nginx (Port 80)。
+-流量進入 Nginx (Port 80)。
 
-    Nginx 負責提供靜態檔案 (/public) 或轉發 API 請求給 Node.js。
+-Nginx 負責提供靜態檔案 (/public) 或轉發 API 請求給 Node.js。
 
 2.內部管理 (Private)
 
-    管理者透過 localhost (http://localhost) 進入。
+-管理者透過 localhost (http://localhost) 進入。
 
-    安全性機制：Nginx 配置了 IP 過濾規則，/api/dbadmin 路徑 僅允許本地 IP 存取，外部 ngrok 請求會被攔截 (403 Forbidden)。
+-安全性機制：Nginx 配置了 IP 過濾規則，/api/dbadmin 路徑 僅允許本地 IP 存取，外部 ngrok 請求會被攔截 (403 Forbidden)。
 
 3.後端處理
 
-    Node.js Server 監聽 Port 3000。
+-Node.js Server 監聽 Port 3000。
 
-    server.js 作為總機，分發路由。
+-server.js 作為總機，分發路由。
 
-    dbadmin.js 處理資料庫管理邏輯，並包含 Token 驗證 Middleware。
+-dbadmin.js 處理資料庫管理邏輯，並包含 Token 驗證 Middleware。
 
 🛠️ 技術棧 (Tech Stack)
 
@@ -39,11 +39,11 @@
 
     Backend: Node.js, Express.js
 
-    Database: MariaDB
+    Database: MariaDB(rikki)
 
     Security: bcryptjs (Password Hashing), CORS config, IP Restriction (Nginx level)
 
-    Tunneling: ngrok
+    Tunneling: ngrok(raypong6)
 
 📂 專案結構 (Project Structure)
 ```

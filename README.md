@@ -61,13 +61,14 @@
 
 1. 環境變數 (.env)
 
-請在專案根目錄建立 .env 檔案，填入資料庫連線資訊：
-
-PORT=3000
-DB_HOST=localhost
-DB_USER=rikki           # 資料庫使用者
-DB_PASSWORD=your_password
-DB_NAME=your_db_name
+   請在專案根目錄建立 .env 檔案，填入資料庫連線資訊：
+    ```
+    PORT=3000
+    DB_HOST=localhost
+    DB_USER=rikki           # 資料庫使用者
+    DB_PASSWORD=your_password
+    DB_NAME=your_db_name
+    ```
 # 注意：db.js 採用 Connection Pool，database 參數可保持彈性
 
 

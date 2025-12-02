@@ -1,4 +1,4 @@
-const API_BASE = 'http://localhost:3000/api/dbadmin';
+const API_BASE = '/api/dbadmin';
 let currentDB = '';
 let authToken = ''; // 用來存密碼
 async function doLogin() {

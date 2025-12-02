@@ -132,51 +132,56 @@ Endpoint
 描述
 
 備註
+```
+    POST
 
-POST
+    /api/dbadmin/login
 
-/api/dbadmin/login
+    管理員登入
 
-管理員登入
+    回傳 Token (password_hash)
+```
+```
+    GET
 
-回傳 Token (password_hash)
+    /api/dbadmin/databases
 
-GET
+    顯示所有資料庫
 
-/api/dbadmin/databases
+    排除系統資料庫
+```
+```
+    GET
 
-顯示所有資料庫
+    /api/dbadmin/tables
 
-排除系統資料庫
+    顯示指定資料庫的表格
 
-GET
+    需帶參數 ?db=name
+```
+```
+    GET
 
-/api/dbadmin/tables
+    /api/dbadmin/data
 
-顯示指定資料庫的表格
+    獲取表格資料 (Limit 100)
 
-需帶參數 ?db=name
+    需帶參數 ?db=name&table=name
+```
+```
+    POST
 
-GET
+    /api/dbadmin/sql
 
-/api/dbadmin/data
+    執行任意 SQL 指令
 
-獲取表格資料 (Limit 100)
-
-需帶參數 ?db=name&table=name
-
-POST
-
-/api/dbadmin/sql
-
-執行任意 SQL 指令
-
-JSON Body: { "sql": "...", "db": "..." }
+    JSON Body: { "sql": "...", "db": "..." }
+```
 
 🛡️ 安全性細節 (Security)
 
-Middleware 警衛：所有 /api/dbadmin 請求需攜帶 Authorization Header，伺服器會比對資料庫中的 Hash 進行驗證。
+-Middleware 警衛：所有 /api/dbadmin 請求需攜帶 Authorization Header，伺服器會比對資料庫中的 Hash 進行驗證。
 
-SQL Injection 防護：使用 mysql2 套件的 pool.query 搭配 參數化查詢 (?) 或 pool.escapeId() 來防止注入攻擊。
+-SQL Injection 防護：使用 mysql2 套件的 pool.query 搭配 參數化查詢 (?) 或 pool.escapeId() 來防止注入攻擊。
 
-密碼安全：使用 bcryptjs 進行密碼雜湊比對，不儲存明碼。
+-密碼安全：使用 bcryptjs 進行密碼雜湊比對，不儲存明碼。

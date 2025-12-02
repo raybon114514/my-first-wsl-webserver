@@ -9,53 +9,53 @@
 
 請求處理流程
 
-外部訪問 (Public)
+1.外部訪問 (Public)
 
-使用者透過 ngrok (https://xxx.ngrok.app) 進入。
+    使用者透過 ngrok (https://xxx.ngrok.app) 進入。
 
-流量進入 Nginx (Port 80)。
+    流量進入 Nginx (Port 80)。
 
-Nginx 負責提供靜態檔案 (/public) 或轉發 API 請求給 Node.js。
+    Nginx 負責提供靜態檔案 (/public) 或轉發 API 請求給 Node.js。
 
-內部管理 (Private)
+2.內部管理 (Private)
 
-管理者透過 localhost (http://localhost) 進入。
+    管理者透過 localhost (http://localhost) 進入。
 
-安全性機制：Nginx 配置了 IP 過濾規則，/api/dbadmin 路徑 僅允許本地 IP 存取，外部 ngrok 請求會被攔截 (403 Forbidden)。
+    安全性機制：Nginx 配置了 IP 過濾規則，/api/dbadmin 路徑 僅允許本地 IP 存取，外部 ngrok 請求會被攔截 (403 Forbidden)。
 
-後端處理
+3.後端處理
 
-Node.js Server 監聽 Port 3000。
+    Node.js Server 監聽 Port 3000。
 
-server.js 作為總機，分發路由。
+    server.js 作為總機，分發路由。
 
-dbadmin.js 處理資料庫管理邏輯，並包含 Token 驗證 Middleware。
+    dbadmin.js 處理資料庫管理邏輯，並包含 Token 驗證 Middleware。
 
 🛠️ 技術棧 (Tech Stack)
 
-OS: WSL 2 (Ubuntu 24.04)
+    OS: WSL 2 (Ubuntu 24.04)
 
-Web Server: Nginx (Reverse Proxy & Static File Serving)
+    Web Server: Nginx (Reverse Proxy & Static File Serving)
 
-Backend: Node.js, Express.js
+    Backend: Node.js, Express.js
 
-Database: MariaDB
+    Database: MariaDB
 
-Security: bcryptjs (Password Hashing), CORS config, IP Restriction (Nginx level)
+    Security: bcryptjs (Password Hashing), CORS config, IP Restriction (Nginx level)
 
-Tunneling: ngrok
+    Tunneling: ngrok
 
 📂 專案結構 (Project Structure)
-
-my-first-wsl-webserver/
-├── public/              # 前端靜態檔案 (HTML/JS/CSS)
-├── routes/
-│   └── dbadmin.js       # 資料庫管理 API 路由 (登入/查詢/執行SQL)
-├── .env                 # 環境變數設定 (不應上傳至 Git)
-├── db.js                # MariaDB 連線池設定 (Connection Pool)
-├── server.js            # 應用程式入口 (Entry Point)
-└── package.json
-
+```
+    my-first-wsl-webserver/
+    ├── public/              # 前端靜態檔案 (HTML/JS/CSS)
+    ├── routes/
+    │   └── dbadmin.js       # 資料庫管理 API 路由 (登入/查詢/執行SQL)
+    ├── .env                 # 環境變數設定 (不應上傳至 Git)
+    ├── db.js                # MariaDB 連線池設定 (Connection Pool)
+    ├── server.js            # 應用程式入口 (Entry Point)
+    └── package.json
+```
 
 ⚙️ 安裝與設定 (Setup)
 
@@ -73,52 +73,53 @@ DB_NAME=your_db_name
 
 2. 資料庫準備
 
-確保 MariaDB 服務已啟動，並建立對應的 admins 表格供登入驗證使用。
+    確保 MariaDB 服務已啟動，並建立對應的 admins 表格供登入驗證使用。
 
--- 範例：建立管理者表格
-CREATE TABLE admins (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    username VARCHAR(50) NOT NULL,
-    password_hash VARCHAR(255) NOT NULL -- 存放 bcrypt 加密後的密碼
-);
+    -- 範例：建立管理者表格
+    CREATE TABLE admins (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        username VARCHAR(50) NOT NULL,
+        password_hash VARCHAR(255) NOT NULL -- 存放 bcrypt 加密後的密碼
+    );
 
 
 3. Nginx 設定 (關鍵)
 
-為了實現「後台僅限 Localhost」的安全性，Nginx 配置 (/etc/nginx/sites-available/default) 需包含：
-
-location /api/dbadmin {
-    allow 127.0.0.1;    # 允許本機
-    deny all;           # 拒絕其他所有 IP (包含 ngrok 轉發的來源)
-    
-    proxy_pass http://localhost:3000;
-    # ... 其他 proxy 設定
-}
+    為了實現「後台僅限 Localhost」的安全性，Nginx 配置 (/etc/nginx/sites-available/default) 需包含：
+    ```
+        location /api/dbadmin {
+            allow 127.0.0.1;    # 允許本機
+            deny all;           # 拒絕其他所有 IP (包含 ngrok 轉發的來源)
+            
+            proxy_pass http://localhost:3000;
+            # ... 其他 proxy 設定
+        }
+    ```
 
 
 🚀 啟動服務 (Usage)
 
 啟動資料庫：
-
-sudo service mariadb start
-
+```
+    sudo service mariadb start
+```
 
 啟動 Nginx：
-
-sudo service nginx start
-
+```
+    sudo service nginx start
+```
 
 啟動 Node.js 後端：
-
-node server.js
-
+```
+    node server.js
+```
 
 伺服器將運行於 http://localhost:3000。
 
 啟動 ngrok (若需外部存取)：
-
-ngrok http 80
-
+```
+    ngrok http 80
+```
 
 🔌 API 說明 (Backend API)
 
